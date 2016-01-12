@@ -16,4 +16,4 @@ Shell scripts we've used for staging are included in this repo (do note: these s
 The WiFi-probes were connected to the wired network for management and the submission of test results. 
 For IP connectivity tests on the WiFi-side seperate routing-tables were used, this way the OpenWRT device could hold multiple default gateways which did not conflict with each other.
 
-For tests results from 32C3 see: http://koopen.net/ccc/wifi-probe/
+For tests results from 32C3 see: http://koopen.net/ccc/wifi-probe/ (this also shows the power the combination of Graphite/Carbon metrics from the Aruba Graphite script: https://github.com/bitlair/aruba/)
