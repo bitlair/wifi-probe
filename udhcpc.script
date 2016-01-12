@@ -1,0 +1,39 @@
+#!/bin/sh
+[ -z "$1" ] && echo "Error: should be run by udhcpc" && exit 1
+
+#set -x
+
+setup_interface() {
+	env
+	# Hack to get $network:
+	network=$(echo $ip |(IFS=. read -r i1 i2 i3 i4
+        	echo ${subnet:-255.255.255.0}|(IFS=. read -r m1 m2 m3 m4;
+			printf "%d.%d.%d.%d\n" "$((i1 & m1))" "$((i2 & m2))" "$((i3 & m3))" "$((i4 & m4))")))
+
+	echo "udhcpc: ifconfig $interface $ip netmask ${subnet:-255.255.255.0} broadcast ${broadcast:-+} gateway $router"
+	ip addr add $ip/$mask dev $interface
+	ip route add $network/$mask dev $interface table $interface
+	ip route add default via $router dev $interface table $interface
+	ip rule add from $ip table $interface
+	ip route del $network/$mask dev $interface
+}
+
+
+applied=
+case "$1" in
+	deconfig)
+		ifconfig "$interface" 0.0.0.0
+		while ip rule del table $interface;do echo Deleting rule from ip rules;done &>/dev/null
+	;;
+	renew)
+		setup_interface update
+	;;
+	bound)
+		setup_interface ifup
+	;;
+esac
+
+# user rules
+[ -f /etc/udhcpc.user ] && . /etc/udhcpc.user
+
+exit 0
