@@ -17,7 +17,7 @@ for i in ca-certificates rdisc6 wget screen php5-cli zoneinfo-core oping lldpd k
 	opkg install $i
 done
 
-uci set system.@system[0].log_file='/var/log/syslog'
+#uci set system.@system[0].log_file='/var/log/syslog'
 #uci set system.@system[0].log_ip='1.1.1.1'
 if [ "$(uci get lldpd.config.interface|grep eth0)" = "" ];then
 	uci add_list lldpd.config.interface='eth0'
