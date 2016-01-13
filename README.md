@@ -4,10 +4,12 @@ This project is in an alpha state; most code is "hacky" and is poorly documented
 # WiFi-probe
 This project is a collection of scripts that enables automated WiFi testing using the OpenWRT platform with wpa_supplicant. Test results are submitted to Graphite/Carbon.
 
+A WiFi-probe acts as a WiFi-client, it will scan for nearby BSSID's for the configured ESSID, it will then sequently connect to these BSSID's and preform automated tests.
+
 For a list of metrics WiFi-probe collects see: http://koopen.net/ccc/wifi-probe/probe_metrics.png
 
 # Deployment at 32C3
-At the 32C3 Congress we've deployed WiFi-probes using TP-Link Archer C7 v2. The following URL contains the packages we've used for these devices:
+At the 32C3 Congress we've deployed WiFi-probes using TP-Link Archer C7 v2. The WiFi-probes are connecting to the WiFi network using 802.1X EAP-TTLS PAP (other modes have not yet been tested). The following URL contains the packages we've used for these devices:
 
 http://skelter.nikhef.nl/openwrt-bin-archer/ar71xx/
 
