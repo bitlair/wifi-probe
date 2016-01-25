@@ -57,7 +57,7 @@ while read line; do
 			gateway=fe80:$value
 	esac	
 done << EOF
-$(rdisc6 -1 $interface)
+$(rdisc6 -1 -n $interface)
 EOF
 mac_address=$(ip link list dev $interface|awk '($1 == "link/ether") { print $2 }')
 mac_to_eui64 $mac_address

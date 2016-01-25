@@ -2,13 +2,13 @@
 /**
  * common.php
  */
-openlog("wifi-probe-".$argv[1], LOG_PID | LOG_PERROR, LOG_LOCAL0);
+//openlog("wifi-probe-".$argv[1], LOG_PID | LOG_PERROR, LOG_LOCAL0);
 
 function _l($msg, $fatal = false) {
 	global $bssid_clean, $ssid;
 	echo @date("d-m-Y H:i:s") . " :: [{$ssid}][{$bssid_clean}] " . $msg . "\n";
 
-	syslog(LOG_INFO, "[{$ssid}][{$bssid_clean}] " . $msg . "\n");
+	//syslog(LOG_INFO, "[{$ssid}][{$bssid_clean}] " . $msg . "\n");
 	if ($fatal) {
 		exit;
 	}

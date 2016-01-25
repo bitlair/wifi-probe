@@ -7,9 +7,9 @@ if [ "$interface" = "" ]; then
 fi
 
 # Remove non-link scope addresses
-ip -6 addr list dev wlan0 scope global|grep inet6|awk '{ print $2 }'|while read ip; do
-	ip -6 addr del $ip dev wlan0
-	ip -6 route del $(echo $ip|cut -d: -f1-4)::/64 dev wlan0 table wlan0
+ip -6 addr list dev $interface scope global|grep inet6|awk '{ print $2 }'|while read ip; do
+	ip -6 addr del $ip dev $interface
+	ip -6 route del $(echo $ip|cut -d: -f1-4)::/64 dev $interface table $interface
 done
 
 

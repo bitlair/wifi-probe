@@ -27,6 +27,7 @@ else {
 
 set_country_code();
 kill_dhcp();
+kill_rdisc6();
 
 // init graphite
 $graphite_fsock = initGraphite();
@@ -54,7 +55,7 @@ add_networks();
 
 // wget interval
 $t_wget_4 = array();
-//$t_wget_6 = array();
+$t_wget_6 = array();
 
 // get BSSID list
 $_last_bssid_get = 0;
@@ -123,44 +124,99 @@ while (true) {
 			_l("Assoc/auth/EAP stats: key_neg = {$logs["key_neg"]} ms, eap = {$logs["eap"]} ms, assoc = {$logs["assoc"]} ms, auth = {$logs["auth"]} ms");
 
 			// get dhcp
-			$dhcp = get_dhcp();
+			if ($_cfg['ip_mode'] == "dualstack" || $_cfg['ip_mode'] == "ipv4-only") {
+				$dhcp = get_dhcp();
 
-			if ($dhcp['ip'] == "") {
-				_l("Got no DHCP, skipping");
-				sendGraphite("dhcp_failed", 1);
-				sendGraphite("dhcp_success", 0);
-				continue;
-			}
-
-                        sendGraphite("dhcp_failed", 0);
-                        sendGraphite("dhcp_success", 1);
-			sendGraphite("dhcp_time", $dhcp["dhcp_time"]);
-			_l("DHCP done, IP = {$dhcp["ip"]}, subnet = {$dhcp["subnet"]}, gateway = {$dhcp["router"]}, took {$dhcp["dhcp_time"]} ms");
-
-
-			// do wget test IPv4
-			if ( (!isset($t_wget_4[$net["bssid"]]) && $_band != "2ghz") || (( (time() - $t_wget_4[$net["bssid"]]) >= $_cfg["wget_interval"]) && ($_band != "2ghz"))) {
-				$wget = wget($dhcp["ip"], 4);
-				$t_wget_4[$net["bssid"]] = time();
-				sendGraphite("wget_speed_v4",$wget);
-				_l("wget results: {$wget} Mbit/s");
-			}
-
-			// do ping tests IPv4
-			$ping_list = array($dhcp["router"], $_cfg["ping_host_v4"]);
-
-			foreach ($ping_list as $host) {
-				$ping = ping($host, $dhcp["ip"]);
-				$ping_log = "";
-				foreach ($ping as $metric => $value) {
-					sendGraphite("ping_v4." . str_replace(".","_",$host) . "." . $metric, $value);
-					$ping_log .= $metric . " = " . $value . " ";
+				if ($dhcp['ip'] == "") {
+					_l("Got no DHCP, skipping");
+					sendGraphite("dhcp_failed", 1);
+					sendGraphite("dhcp_success", 0);
+					$dhcp_failed = true;
+					if ($_cfg['ip_mode'] == "ipv4-only") {
+						continue;
+					}
 				}
-				_l("Ping results: {$ping_log}");
+
+	                        sendGraphite("dhcp_failed", 0);
+        	                sendGraphite("dhcp_success", 1);
+				sendGraphite("dhcp_time", $dhcp["dhcp_time"]);
+				$dhcp_failed = false;
+				_l("DHCP done, IP = {$dhcp["ip"]}, subnet = {$dhcp["subnet"]}, gateway = {$dhcp["router"]}, took {$dhcp["dhcp_time"]} ms");
+			}
+
+			// get IPv6
+			if ($_cfg['ip_mode'] == "dualstack" || $_cfg['ip_mode'] == "ipv6-only") {  
+				$rdisc6 = get_rdisc6();			
+				if ($rdisc6["IPAddress"] == "") {
+                                	_l("Got no Rdisc6, skipping");
+                                	sendGraphite("rdisc6_failed", 1);
+                                	sendGraphite("rdisc6_success", 0);
+					$rdisc6_failed = true;
+					if ($_cfg['ip_mode'] == "ipv6-only") {
+                                		continue;
+					}
+				}
+
+                        	sendGraphite("rdisc6_failed", 0);
+                        	sendGraphite("rdisc6_success", 1);
+                        	sendGraphite("rdisc6_time", $rdisc6["rdisc6_time"]);
+				$rdisc6_failed = false;
+				_l("Rdisc6 done, IP {$rdisc6["IPAddress"]}, Gateway = {$rdisc6["Gateway"]}, took {$rdisc6["rdisc6_time"]} ms");
+			}
+
+			// IPv4 tests
+			if ( ($_cfg['ip_mode'] == "dualstack" || $_cfg['ip_mode'] == "ipv4-only") && !$dhcp_failed && ($_band == $_cfg['wget_band'] || $_cfg['wget_band'] == "both") ) { 
+				// do wget test IPv4
+				if (!isset($t_wget_4[$net["bssid"]]) || ( (time() - $t_wget_4[$net["bssid"]]) >= $_cfg["wget_interval"])) { 
+					$wget = wget($dhcp["ip"], 4);
+					$t_wget_4[$net["bssid"]] = time();
+					sendGraphite("wget_speed_v4",$wget);
+					_l("wget results: {$wget} Mbit/s");
+				}
+
+                        	// do ping tests IPv4                                                                                                                                             
+                        	$ping_list = array($dhcp["router"], $_cfg["ping_host_v4"]);                                                                                                       
+                                                                                                                                                                                          
+                        	foreach ($ping_list as $host) {                                                                                                                                   
+                                	$ping = ping($host, $dhcp["ip"]);                                                                                                                         
+                                	$ping_log = "";                                                                                                                                           
+                                	foreach ($ping as $metric => $value) {                                                                                                            
+                                        	sendGraphite("ping_v4." . str_replace(".","_",$host) . "." . $metric, $value);                                                            
+                                        	$ping_log .= $metric . " = " . $value . " ";                                                                                              
+                                	}                                                                                                                                                 
+                                	_l("Ping results: {$ping_log}");                                                                                                                  
+                        	}
+
+				kill_dhcp();                                                                                        
+			}
+
+                        // IPv6 tests
+			if ( ($_cfg['ip_mode'] == "dualstack" || $_cfg['ip_mode'] == "ipv6-only") && !$rdisc6_failed && ($_band == $_cfg['wget_band'] || $_cfg['wget_band'] == "both") ) { 
+                        	// do wget test IPv6
+				if (!isset($t_wget_6[$net["bssid"]]) || ( (time() - $t_wget_6[$net["bssid"]]) >= $_cfg["wget_interval"])) {
+                                	$wget = wget($rdisc6["IPAddress"], 6);
+                                	$t_wget_6[$net["bssid"]] = time();
+                                	sendGraphite("wget_speed_v6",$wget);
+                                	_l("wget results: {$wget} Mbit/s");
+                        	}
+
+                        	// do ping tests IPv6                                                                                                                                             
+                        	$ping_list = array($rdisc6["Gateway"] . "%" . $_dev, $_cfg["ping_host_v6"]);                                                                                                    
+                                                                                                                                                                                          
+                        	foreach ($ping_list as $host) {                                                                                                                                   
+                                	$ping = ping($host, $rdisc6["IPAddress"], 6);                                                                                                             
+                                	$ping_log = "";                                                                                                                                           
+                                	foreach ($ping as $metric => $value) {                                                                                                            
+                                        	sendGraphite("ping_v6." . str_replace(".","_",str_replace("%" . $_dev, "", $host)) . "." . $metric, $value);                                                            
+                                        	$ping_log .= $metric . " = " . $value . " ";                                                                                              
+                                	}                                                                                                                                                 
+                                	_l("Ping results: {$ping_log}");                                                                                                                  
+                        	}
+			
+				kill_rdisc6();                                                                                                          
 			}
 
 			_l("Done, disabling {$ssid} BSSID {$net["bssid"]}");
-			kill_dhcp();
 			disable_Network($i);
 		}
 
