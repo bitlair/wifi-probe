@@ -337,4 +337,38 @@ function watchdog_get($dev) {
 
 	return file_get_contents($_cfg['log_dir'] . $dev . "watchdog");
 }
+
+function ath10k_stats($dev, $compare = 0) {
+	$stats = explode("\n", file_get_contents("/sys/kernel/debug/ieee80211/phy" . str_replace("wlan","",$dev) . "/ath10k/fw_stats"));
+	$ret = array();
+	$filter = array("peer_mac_address"=>1);
+	$avg = array("channel_tx_power"=>1,"peer_rssi"=>1);
+	$leave = array("peer_tx_rate"=>1,"peer_rx_rate"=>1);	
+
+	foreach ($stats as $line) {
+		if (preg_match("/([a-zA-Z.,() ]+)( [0-9]+)/i",$line,$out)) {
+			$field = strtolower(str_replace(" ", "_", str_replace("(","", str_replace(")", "", str_replace(".", "", str_replace(",", "", trim($out[1])))))));
+			$val = intval(trim($out[2]));
+			if (!isset($filter[$field])) {
+				if (is_array($compare)) {
+					if (isset($avg[$field])) {
+						$ret[$field] = round(($val + $compare[$field]) / 2, 0);
+					}
+					else if (isset($leave[$field])) {
+						$ret[$field] = $val;
+					}
+					else {
+						$ret[$field] = $val - $compare[$field];
+					}
+				}
+				else {
+					$ret[$field] = $val;
+				}
+			}
+		}
+	}
+
+	return $ret;
+	
+}
 ?>

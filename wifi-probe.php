@@ -82,6 +82,7 @@ while (true) {
 
 			$bssid_clean = str_replace(":", "", $net["bssid"]);
 			$ap_name = $_bssid_ap[$net["bssid"]];
+			$wget_done = false;
 
 			if (intval($net["signal"]) < $_cfg["min_signal"]) {
 				_l("Skipping SSID {$ssid} on BSSID {$net["bssid"]} AP {$ap_name} @ {$net["freq"]} - signal {$net["signal"]} (signal too low)");
@@ -166,6 +167,11 @@ while (true) {
 				_l("Rdisc6 done, IP {$rdisc6["IPAddress"]}, Gateway = {$rdisc6["Gateway"]}, took {$rdisc6["rdisc6_time"]} ms");
 			}
 
+                        // ath10k stats                                                                                                                                                 
+                        if ($_cfg["interfaces"][$_dev]["type"] == "ath10k") {                                                                                                             
+				$ath10k_stats = ath10k_stats($_dev);
+                        }                                                                       
+
 			// IPv4 tests
 			if ( ($_cfg['ip_mode'] == "dualstack" || $_cfg['ip_mode'] == "ipv4-only") && !$dhcp_failed && ($_band == $_cfg['wget_band'] || $_cfg['wget_band'] == "both") ) { 
 				// do wget test IPv4
@@ -174,6 +180,7 @@ while (true) {
 					$t_wget_4[$net["bssid"]] = time();
 					sendGraphite("wget_speed_v4",$wget);
 					_l("wget results: {$wget} Mbit/s");
+					$wget_done = true;
 				}
 
                         	// do ping tests IPv4                                                                                                                                             
@@ -200,6 +207,7 @@ while (true) {
                                 	$t_wget_6[$net["bssid"]] = time();
                                 	sendGraphite("wget_speed_v6",$wget);
                                 	_l("wget results: {$wget} Mbit/s");
+					$wget_done = true;
                         	}
 
                         	// do ping tests IPv6                                                                                                                                             
@@ -216,6 +224,16 @@ while (true) {
                         	}
 			
 				kill_rdisc6();                                                                                                          
+			}
+
+			if ($wget_done) {
+				if ($_cfg["interfaces"][$_dev]["type"] == "ath10k") {
+					$ath10k_stats = ath10k_stats($_dev, $ath10k_stats);
+
+					foreach ($ath10k_stats as $field => $value) {
+						sendGraphite("ath10k.{$field}",$value);
+					}
+				}
 			}
 
 			_l("Done, disabling {$ssid} BSSID {$net["bssid"]}");
