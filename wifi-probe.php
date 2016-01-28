@@ -29,9 +29,6 @@ set_country_code();
 kill_dhcp();
 kill_rdisc6();
 
-// init graphite
-$graphite_fsock = initGraphite();
-
 _l("Starting WiFi probe on {$_dev}");
 
 // get wpa_cli status (will also start wpa_supplicant if not running on interface)
@@ -64,6 +61,9 @@ $_bssid_ap = get_bssid_list();
 
 // main loop
 while (true) {
+	// init graphite
+	$graphite_fsock = initGraphite();
+
 	// iterate through configured networks
 	for ($i = 0; $i < count($_cfg["networks"][$_band]); $i++) {
 		$ssid = str_replace("\\", "", str_replace("\"", "", $_cfg["networks"][$_band][$i]["ssid"]));
@@ -78,6 +78,8 @@ while (true) {
 
 		foreach ($networks[$ssid] as $net) {
 			
+			watchdog_update();
+
 			$bssid_clean = str_replace(":", "", $net["bssid"]);
 			$ap_name = $_bssid_ap[$net["bssid"]];
 
@@ -228,6 +230,9 @@ while (true) {
 
 	// check for BSSID list
 	$_bssid_ap = get_bssid_list();
+
+        // close graphite                                                                                                                                        
+        closeGraphite($graphite_fsock);                  
 
 	sleep(5);
 }

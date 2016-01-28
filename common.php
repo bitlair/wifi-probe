@@ -224,7 +224,13 @@ function kill_rdisc6() {
 }
 
 function ping($host, $src, $ip_v = 4) {
-	$tmp = explode("\n", sendCommand("oping -{$ip_v} -I {$src} -i 0.3 -c 30 {$host}"));
+	if (!preg_match("/(fe80\:\:)/i",$host)) {
+		$src = " -I {$src}";
+	}
+	else {
+		$src = "";
+	}
+	$tmp = explode("\n", sendCommand("oping -{$ip_v}{$src} -i 0.3 -c 30 {$host}"));
 	$ping = array();
 
 	for ($i = (count($tmp)-1); $i >= 0; $i--) {
@@ -269,6 +275,14 @@ function initGraphite() {
 	}
 }
 
+function closeGraphite($sock) {
+        global $_cfg;                             
+                                 
+        if ($_cfg['graphite_send']) {
+                return fclose($sock);
+        }
+}        
+
 function sendGraphite($field, $value) {
         global $_cfg, $graphite_fsock, $node_name, $bssid_clean, $ssid, $_band, $ap_name;
 
@@ -310,5 +324,17 @@ function set_country_code() {
 	global $_cfg;
 
 	sendCommand("iw reg set {$_cfg["country"]}");	
+}
+
+function watchdog_update() {
+	global $_cfg, $_dev;
+
+	file_put_contents($_cfg['log_dir'] . $_dev . "watchdog", time());
+}
+
+function watchdog_get($dev) {
+	global $_cfg;
+
+	return file_get_contents($_cfg['log_dir'] . $dev . "watchdog");
 }
 ?>

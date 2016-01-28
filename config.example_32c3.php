@@ -26,6 +26,8 @@ $_cfg["networks"]["2ghz"][0] = array (
         "altsubject_match" => "\\\"DNS:radius.c3noc.net\\\""
 );
 
+$_cfg["interfaces"]["wlan0"]["type"] = "ath10k";
+$_cfg["interfaces"]["wlan1"]["type"] = "ath9k";
 
 $_cfg['country'] = "DE";
 $_cfg['min_signal'] = -65;
@@ -43,6 +45,7 @@ $_cfg['wget_interval'] = 300; // in seconds, foreach BSSID
 
 $_cfg['bssid_url'] = "https://radius.c3noc.net/probe/bssid_list"; 
 $_cfg['bssid_get_interval'] = 900;
+$_cfg['watchdog_timeout'] = 600;
 
 // Graphite settings
 $_cfg['graphite_ip'] = "94.45.226.42";

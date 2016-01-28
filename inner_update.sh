@@ -5,6 +5,7 @@ cp files/network /etc/config/network
 cp files/id_rsa ~/.ssh
 cp files/id_rsa.pub ~/.ssh
 cp files/rt_tables /etc/iproute2
+cp files/cron_watchdog /etc/crontabs/root
 chmod 0700 ~/.ssh
 chmod 0600 ~/.ssh/*
 
@@ -33,5 +34,8 @@ uci set network.globals.ula_prefix=
 uci commit
 
 rm /sbin/ip; ln -s /usr/bin/ip /sbin/ip
+
+/etc/init.d/cron start
+/etc/init.d/cron enable
 
 id
